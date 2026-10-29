@@ -1,0 +1,52 @@
+너는 시니어 풀스택 개발자다. 대학생·청년용 게임형 일정 앱 "나의 일일퀘스트" MVP를 만든다.
+컨셉: 말만 하면 알아서 퀘스트가 되고, 내가 무너지기 쉬운 순간엔 가장 쉬운 한 걸음을 내미는 앱.
+이번 단계에선 골격과 데이터 구조만 만든다. AI 기능은 다음 단계에서 붙인다.
+
+[기술 스택]
+- Next.js App Router + TypeScript + Tailwind + shadcn/ui + Framer Motion + lucide-react
+- 상태: Zustand + persist(localStorage). DB 없음
+- 모든 날짜·시간은 Asia/Seoul 기준. date-fns 사용
+- 모바일 우선: max-width 420px 중앙 정렬, 데스크톱에선 폰 프레임처럼 보이게
+
+[디자인]
+다크 기본. 배경 #12131A, 카드 #1C1E28, 포인트 보라 #7C5CFF, 보상 강조 앰버 #FFB020.
+모던 RPG 톤. 한 화면에서 강조는 한 곳에만.
+
+[시계] lib/clock.ts의 now()를 만들고, 앱 전체에서 현재 시각은 반드시 이 함수로만 얻는다.
+new Date()를 직접 호출하지 마라. (시연용 시간 여행 기능 때문)
+
+[데이터 모델] lib/types.ts
+Quest { id, title, date(YYYY-MM-DD), startTime(HH:mm|null), durationMin, location|null, note|null,
+        difficulty(1~5), exp, status('pending'|'done'|'failed'), goalId|null, recurrenceId|null,
+        doneWhen|null, starterStep|null, dependsOn(string[]), createdAt }
+Goal { id, title, deadline, color }
+ActivityEvent { questId, weekday(0~6), band('morning'|'afternoon'|'evening'|'night'), outcome('done'|'failed') }
+User { nickname, level, exp, expToNext, streak, bestStreak, coins, lastActiveDate, streakBroken }
+
+[게임 규칙] lib/game.ts
+- EXP는 코드로만 계산: calcExp(difficulty, durationMin) =
+  (10 + difficulty*8) * sqrt(durationMin/30) 을 5 단위로 반올림, 10~100 사이로 제한
+- 시간대: 05~12시 morning, 12~18시 afternoon, 18~22시 evening, 그 외 night
+  (startTime 없는 퀘스트는 완료 시각 기준)
+
+[화면] 하단 탭 5개: 홈 · 캘린더 · ✨ · 파티 · 프로필
+✨는 가운데에 크게 떠 있는 원형 버튼.
+- 홈: StatusHeader(sticky: 닉네임, Lv, EXP 바, 🔥스트릭, 코인)
+      → HeroSlot 자리(지금은 빈 카드)
+      → "✨ 무엇을 할까요?" 한 줄 바 (탭하면 빈 바텀시트만 열림)
+      → 오늘의 퀘스트 목록 (시간순, 시간 없는 건 아래로)
+- 캘린더: 월간 그리드. 날짜마다 퀘스트 개수 점, 오늘 강조. 날짜 탭 → 그날 퀘스트 바텀시트
+- ✨, 파티, 프로필: "준비 중" 자리표시
+
+[퀘스트 체크]
+체크 시 EXP 바가 부드럽게 차오르고 "+45" 플로팅 텍스트가 떠올랐다 사라짐.
+최대치를 넘으면 레벨업 모달. 완료 시 ActivityEvent 기록.
+앱 진입 시 전날까지 pending인 퀘스트는 failed로 바꾸고 ActivityEvent 기록.
+
+[DevPanel] 우하단 작은 톱니 버튼 → 바텀시트
+- 시간 여행: 요일·시각 지정 → clock.now()가 그 시각을 반환. 해제 버튼 포함
+- 시드 데이터 생성, 전체 초기화(localStorage 포함)
+
+[시드] 오늘·내일 퀘스트 5개, 유저 Lv.7 / EXP 340/500 / 스트릭 12일 / 코인 1250
+
+완료 후 폴더 구조와 실행 여부를 보고하라.

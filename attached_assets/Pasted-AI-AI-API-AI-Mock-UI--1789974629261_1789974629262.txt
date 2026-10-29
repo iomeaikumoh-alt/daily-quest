@@ -1,0 +1,78 @@
+AI 입력 엔진을 만든다. 이 앱의 핵심 기능이다.
+이번엔 실제 AI API를 연결하지 않고, 나중에 교체할 수 있는 가짜 AI(Mock)로 동작시킨다.
+원칙: 챗봇 UI 금지. 말풍선 없이, 입력하면 퀘스트 카드가 바로 튀어나와야 한다.
+
+[1. AI 교체 구조]
+- lib/ai/provider.ts에 인터페이스 정의:
+  interface AIProvider {
+    parse(text: string, now: Date): Promise<ParseResult>
+    breakdown(goal: string, deadline: string | null, now: Date): Promise<BreakdownResult>
+  }
+- 이번 단계에선 MockAIProvider의 parse만 구현한다 (breakdown은 다음 단계)
+- lib/ai/index.ts에서 provider 하나만 export한다. 나중에 이 한 줄만 실제 AI로 바꿀 것이다
+- /api/parse 라우트를 만들고 내부에서 provider.parse를 호출한다
+- 응답에 800~1200ms 랜덤 지연을 준다 (로딩 연출 확인용)
+- API 키, Secrets, 외부 네트워크 호출 코드는 만들지 마라
+
+[2. ParseResult 형식]
+{
+  items: [{
+    kind: "task" | "bigGoal",
+    title: string,
+    date: string | null,          // YYYY-MM-DD
+    startTime: string | null,     // HH:mm
+    durationMin: number,
+    location: string | null,
+    note: string | null,
+    difficulty: 1~5,
+    recurrence: { freq: "none"|"daily"|"weekly", byWeekday: number[], until: string | null },
+    uncertain: string[]           // 추정해서 채운 필드 이름
+  }]
+}
+
+[3. Mock parse 동작]
+아래 데모 문장 3개는 정확한 결과를 미리 만들어 반환한다:
+- "내일 아침 9시 도서관에서 토익 LC 1시간"
+- "내일 오전엔 토익, 오후 3시에 조별과제 회의, 저녁엔 헬스"
+- "매주 화목 저녁 7시 헬스 1시간"
+
+그 외 문장은 규칙 기반 파서로 처리한다:
+- 날짜: 오늘/내일/모레, 이번주·다음주 X요일, M월 D일, 9/24 형식. 없으면 오늘 + uncertain
+- 시간: 오전·오후 N시, N시 M분, HH:mm.
+  아침/점심/오후/저녁/밤 → 09:00/12:00/15:00/19:00/22:00 + uncertain.
+  시간 표현이 전혀 없으면 startTime null
+- 소요시간: N시간, N분. 없으면 30분 + uncertain
+- 장소: "~에서" 바로 앞 단어
+- 반복: 매일, 매주 + 요일들(월수금, 화목 등)
+- 여러 개: 쉼표, "그리고", "~하고", "~엔"으로 나눠 각각 item으로
+- 제목: 위 요소들을 뺀 나머지 텍스트
+- bigGoal: "달성·완성·합격·한 달·N주 안에·까지"가 들어가면 kind를 bigGoal로
+- difficulty: 기본 2, 소요시간 60분 이상이면 3
+
+[4. 후처리 (실제 AI로 바꿔도 그대로 쓸 코드)]
+- EXP는 calcExp로 계산
+- 반복 일정은 오늘부터 until까지, until이 없으면 최대 4주까지 펼친다. recurrenceId로 묶음
+- date가 형식 오류거나 과거면 오늘로 교정하고 uncertain에 추가
+
+[5. 공용 컴포넌트 QuickCapture]
+하나만 만들어서 세 곳에서 재사용한다:
+- 홈의 "✨ 무엇을 할까요?" 바 → 바텀시트로 열림
+- 캘린더 날짜 시트의 "+ 추가" → 입력창에 "9/24 " 처럼 그 날짜를 미리 채워서 열림
+- ✨ 탭 → 전체 화면
+
+동작:
+- 입력창 + 🎤 버튼(Web Speech API, lang ko-KR, 미지원 브라우저면 버튼 숨김) + 전송 버튼
+- 전송 중: 입력창 아래 스켈레톤 카드 2개
+- task: 퀘스트 카드로 순차 등장(stagger 80ms). 날짜·시간·장소·소요시간·EXP를 칩으로 표시.
+  uncertain에 있는 필드의 칩은 노란 테두리. 칩을 탭하면 인라인 수정
+- task는 즉시 저장하고 "3개 등록됨 · 되돌리기" 토스트 5초
+- 바텀시트 모드에선 등록 후 시트가 닫히고, 홈 목록의 새 카드가 잠깐 하이라이트
+- 반복 일정은 카드 하나로 묶어 "매주 화·목 · 8회"로 표시
+- bigGoal은 저장하지 않고 "이건 쪼개야 할 크기예요 · ✨ 나눠보기" 카드로 표시 (다음 단계에서 구현)
+
+[6. ✨ 탭 화면]
+상단에 QuickCapture 전체 화면, 아래에 "최근 입력" 기록
+(입력 문장 → 만들어진 퀘스트 수, 탭하면 해당 날짜로 이동).
+기록이 없을 땐 데모 문장 3개를 예시 칩으로 보여주고, 탭하면 입력창에 채워진다.
+
+완료 후 데모 문장 3개와 임의 문장 2개로 테스트한 결과를 보고하라.

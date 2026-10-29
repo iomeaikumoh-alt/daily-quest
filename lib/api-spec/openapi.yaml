@@ -1,0 +1,134 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: ai
+    description: Mock AI parsing operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /parse:
+    post:
+      operationId: parseNaturalLanguage
+      tags: [ai]
+      summary: Parse natural language into quest items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ParseRequest"
+      responses:
+        "200":
+          description: Parsed quest items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParseResult"
+        "400":
+          description: Missing input text
+components:
+  schemas:
+    ParseRequest:
+      type: object
+      properties:
+        text:
+          type: string
+        now:
+          type: string
+          format: date-time
+      required:
+        - text
+    ParseResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParseItem"
+      required:
+        - items
+    ParseItem:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [task, bigGoal]
+        title:
+          type: string
+        date:
+          type: [string, "null"]
+        startTime:
+          type: [string, "null"]
+        durationMin:
+          type: integer
+        location:
+          type: [string, "null"]
+        note:
+          type: [string, "null"]
+        difficulty:
+          type: integer
+          minimum: 1
+          maximum: 5
+        recurrence:
+          $ref: "#/components/schemas/ParseRecurrence"
+        uncertain:
+          type: array
+          items:
+            type: string
+      required:
+        - kind
+        - title
+        - date
+        - startTime
+        - durationMin
+        - location
+        - note
+        - difficulty
+        - recurrence
+        - uncertain
+    ParseRecurrence:
+      type: object
+      properties:
+        freq:
+          type: string
+          enum: [none, daily, weekly]
+        byWeekday:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
+        until:
+          type: [string, "null"]
+      required:
+        - freq
+        - byWeekday
+        - until
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
