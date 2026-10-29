@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './aISource';
+export * from './breakdownRequest';
+export * from './breakdownResult';
+export * from './breakdownSubtask';
 export * from './healthStatus';
 export * from './parseItem';
 export * from './parseItemKind';
@@ -13,3 +17,4 @@ export * from './parseRecurrence';
 export * from './parseRecurrenceFreq';
 export * from './parseRequest';
 export * from './parseResult';
+export * from './resplitRequest';

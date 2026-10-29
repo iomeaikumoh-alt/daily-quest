@@ -20,9 +20,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BreakdownRequest,
+  BreakdownResult,
   HealthStatus,
   ParseRequest,
-  ParseResult
+  ParseResult,
+  ResplitRequest
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -145,7 +148,7 @@ export const parseNaturalLanguage = async (parseRequest: ParseRequest, options?:
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries((h as Headers & { entries(): Iterable<[string, string]> }).entries());
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Symbol.iterator in h) {
       return Object.fromEntries(
         Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
@@ -216,5 +219,181 @@ export const useParseNaturalLanguage = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getParseNaturalLanguageMutationOptions(options));
+    }
+
+export const getBreakdownGoalUrl = () => {
+
+
+
+
+  return `/api/breakdown`
+}
+
+/**
+ * @summary Break a big goal down into dated subtasks
+ */
+export const breakdownGoal = async (breakdownRequest: BreakdownRequest, options?: Parameters<typeof customFetch>[1]): Promise<BreakdownResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<BreakdownResult>(getBreakdownGoalUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(breakdownRequest)
+  }
+);}
+
+
+
+
+
+export const getBreakdownGoalMutationKey = () => ['breakdownGoal'] as const;
+
+export const getBreakdownGoalMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof breakdownGoal>>, TError,BreakdownGoalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof breakdownGoal>>, TError,BreakdownGoalMutationVariables, TContext> => {
+
+const mutationKey = getBreakdownGoalMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof breakdownGoal>>, BreakdownGoalMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  breakdownGoal(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BreakdownGoalMutationResult = NonNullable<Awaited<ReturnType<typeof breakdownGoal>>>
+    export type BreakdownGoalMutationBody = BodyType<BreakdownRequest>
+    export type BreakdownGoalMutationError = ErrorType<void>
+    export type BreakdownGoalMutationVariables = {data: BodyType<BreakdownRequest>}
+
+    /**
+ * @summary Break a big goal down into dated subtasks
+ */
+export const useBreakdownGoal = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof breakdownGoal>>, TError,BreakdownGoalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof breakdownGoal>>,
+        TError,
+        BreakdownGoalMutationVariables,
+        TContext
+      > => {
+      return useMutation(getBreakdownGoalMutationOptions(options));
+    }
+
+export const getResplitTaskUrl = () => {
+
+
+
+
+  return `/api/resplit`
+}
+
+/**
+ * @summary Split one task into smaller subtasks
+ */
+export const resplitTask = async (resplitRequest: ResplitRequest, options?: Parameters<typeof customFetch>[1]): Promise<BreakdownResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<BreakdownResult>(getResplitTaskUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(resplitRequest)
+  }
+);}
+
+
+
+
+
+export const getResplitTaskMutationKey = () => ['resplitTask'] as const;
+
+export const getResplitTaskMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resplitTask>>, TError,ResplitTaskMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resplitTask>>, TError,ResplitTaskMutationVariables, TContext> => {
+
+const mutationKey = getResplitTaskMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resplitTask>>, ResplitTaskMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  resplitTask(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResplitTaskMutationResult = NonNullable<Awaited<ReturnType<typeof resplitTask>>>
+    export type ResplitTaskMutationBody = BodyType<ResplitRequest>
+    export type ResplitTaskMutationError = ErrorType<void>
+    export type ResplitTaskMutationVariables = {data: BodyType<ResplitRequest>}
+
+    /**
+ * @summary Split one task into smaller subtasks
+ */
+export const useResplitTask = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resplitTask>>, TError,ResplitTaskMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resplitTask>>,
+        TError,
+        ResplitTaskMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResplitTaskMutationOptions(options));
     }
 

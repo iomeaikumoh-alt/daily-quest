@@ -6,6 +6,10 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Replit and most hosts sit behind one reverse proxy; trust it so req.ip is the
+// client address (used by the AI rate limiter) rather than the proxy's.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,

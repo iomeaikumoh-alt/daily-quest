@@ -25,6 +25,15 @@
 - `lib/scheduler.ts`: 목표를 날짜별 퀘스트로 변환
 - `lib/ai/`: 파싱, 퀘스트 분해, 행동 패턴 분석
 - `lib/health/`: 건강 데이터 어댑터
+- `artifacts/api-server/src/ai/`: 서버 전용 Claude 연동 (프롬프트, 출력 정리·검증, Mock 폴백)
+
+## AI 연동
+
+- 앱은 `/api/parse`, `/api/breakdown`, `/api/resplit`을 호출하고, 실패하면 기기 안의 `mockAIProvider`로 대체합니다.
+- 서버는 `ANTHROPIC_API_KEY`가 있으면 Claude(기본 `claude-haiku-5-5`)를 쓰고, 없거나 호출·검증에 실패하면 규칙 기반 Mock으로 응답합니다. 응답의 `source`(`claude`/`mock`)와 `fallbackReason`으로 확인합니다.
+- API 키와 프롬프트는 서버에만 둡니다. 모바일 번들에서 `artifacts/api-server/src/ai/`를 import하지 않습니다.
+- 환경변수 목록은 `.env.example`에 있습니다. AI 라우트는 IP당 분당 `AI_RATE_LIMIT_PER_MIN`(기본 20)회로 제한됩니다.
+- API 계약을 바꾸면 `lib/api-spec/openapi.yaml`을 고친 뒤 `pnpm --filter @workspace/api-spec run codegen`을 실행합니다.
 
 ## 기술 스택과 확인 명령
 
