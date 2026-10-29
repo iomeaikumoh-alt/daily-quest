@@ -28,6 +28,7 @@ import {
 } from 'lucide-react-native';
 import colors from '@/constants/colors';
 import {
+  BreakdownResult,
   ParseItem,
   ParseResult,
   expandParseResult,
@@ -62,23 +63,64 @@ interface QuickCaptureProps {
   onSaved?: (questIds: string[], count: number) => void;
 }
 
-function getParseEndpoint() {
+const AI_REQUEST_TIMEOUT_MS = 30_000;
+
+type AIResponseMeta = {
+  source?: 'claude' | 'mock';
+  model?: string | null;
+  fallbackReason?: string | null;
+};
+
+function getApiEndpoint(path: string) {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
-  return domain ? `https://${domain}/api/parse` : '/api/parse';
+  return domain ? `https://${domain}/api${path}` : `/api${path}`;
 }
 
-async function requestParse(text: string): Promise<ParseResult> {
+/**
+ * POSTs to the AI API with a timeout. Any failure (network, timeout, 4xx/5xx,
+ * bad JSON) falls back to the on-device mock so capture never dead-ends.
+ */
+async function requestAI<T>(
+  path: string,
+  body: Record<string, unknown>,
+  fallback: () => Promise<T>,
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
   try {
-    const response = await fetch(getParseEndpoint(), {
+    const response = await fetch(getApiEndpoint(path), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, now: now().toISOString() }),
+      body: JSON.stringify({ ...body, now: now().toISOString() }),
+      signal: controller.signal,
     });
-    if (!response.ok) throw new Error(`Parse request failed: ${response.status}`);
-    return (await response.json()) as ParseResult;
-  } catch {
-    return mockAIProvider.parse(text, now());
+    if (!response.ok) throw new Error(`AI request ${path} failed: ${response.status}`);
+    const data = (await response.json()) as T & AIResponseMeta;
+    console.log(
+      `[AI] ${path} via ${data.source ?? 'unknown'}${data.model ? ` (${data.model})` : ''}`,
+      data.fallbackReason ? `fallback: ${data.fallbackReason}` : '',
+    );
+    return data;
+  } catch (error) {
+    console.warn(`[AI] ${path} unavailable, using on-device mock`, error);
+    return fallback();
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+function requestParse(text: string): Promise<ParseResult> {
+  return requestAI<ParseResult>('/parse', { text }, () => mockAIProvider.parse(text, now()));
+}
+
+function requestBreakdown(goal: string, deadline: string | null): Promise<BreakdownResult> {
+  return requestAI<BreakdownResult>('/breakdown', { goal, deadline }, () =>
+    mockAIProvider.breakdown(goal, deadline, now()),
+  );
+}
+
+function requestResplit(title: string): Promise<BreakdownResult> {
+  return requestAI<BreakdownResult>('/resplit', { title }, () => mockAIProvider.resplit(title, now()));
 }
 
 function inferCategory(title: string): Quest['category'] {
@@ -540,7 +582,9 @@ export function QuickCapture({ mode, initialText = '', visible = true, onClose, 
     if (breakdownLoading !== null) return;
     setBreakdownLoading(index);
     try {
-      const raw = await mockAIProvider.breakdown(item.title, item.date, now());
+      // A guessed date (marked uncertain) is not a real deadline; let the AI pick one.
+      const deadline = item.uncertain.includes('date') ? null : item.date;
+      const raw = await requestBreakdown(item.title, deadline);
       setBreakdowns((current) => ({
         ...current,
         [index]: normalizeBreakdownResult(raw, now()),
@@ -595,7 +639,7 @@ export function QuickCapture({ mode, initialText = '', visible = true, onClose, 
     if (currentBreakdown.subtasks.some((child) => child.parentId === item.id)) return;
     setResplittingId(item.id);
     try {
-      const raw = await mockAIProvider.resplit(item.title, now());
+      const raw = await requestResplit(item.title);
       const nested = normalizeNestedBreakdown(raw, now(), item);
       setBreakdowns((current) => {
         const breakdown = current[index];

@@ -59,8 +59,62 @@ export interface ParseItem {
   uncertain: string[];
 }
 
+export type AISource = typeof AISource[keyof typeof AISource];
+
+
+export const AISource = {
+  claude: 'claude',
+  mock: 'mock',
+} as const;
+
 export interface ParseResult {
   items: ParseItem[];
+  source?: AISource;
+  /** @nullable */
+  model?: string | null;
+  /** @nullable */
+  fallbackReason?: string | null;
+}
+
+export interface BreakdownRequest {
+  goal: string;
+  /** @nullable */
+  deadline?: string | null;
+  now?: string;
+}
+
+export interface ResplitRequest {
+  title: string;
+  now?: string;
+}
+
+export interface BreakdownSubtask {
+  id: string;
+  title: string;
+  doneWhen: string;
+  durationMin: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  difficulty: number;
+  /** @minimum 0 */
+  dayOffset: number;
+  dependsOn: string[];
+  starterStep: string;
+}
+
+export interface BreakdownResult {
+  goalTitle: string;
+  deadline: string;
+  /** @nullable */
+  assumption: string | null;
+  subtasks: BreakdownSubtask[];
+  source?: AISource;
+  /** @nullable */
+  model?: string | null;
+  /** @nullable */
+  fallbackReason?: string | null;
 }
 
 export interface HealthStatus {

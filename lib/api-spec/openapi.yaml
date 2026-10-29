@@ -11,7 +11,7 @@ tags:
   - name: health
     description: Health operations
   - name: ai
-    description: Mock AI parsing operations
+    description: AI parsing and goal breakdown (Claude, with rule-based mock fallback)
 paths:
   /healthz:
     get:
@@ -45,7 +45,53 @@ paths:
               schema:
                 $ref: "#/components/schemas/ParseResult"
         "400":
-          description: Missing input text
+          description: Missing or invalid input text
+        "429":
+          description: Too many requests
+  /breakdown:
+    post:
+      operationId: breakdownGoal
+      tags: [ai]
+      summary: Break a big goal down into dated subtasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BreakdownRequest"
+      responses:
+        "200":
+          description: Goal breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakdownResult"
+        "400":
+          description: Missing or invalid goal
+        "429":
+          description: Too many requests
+  /resplit:
+    post:
+      operationId: resplitTask
+      tags: [ai]
+      summary: Split one task into smaller subtasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResplitRequest"
+      responses:
+        "200":
+          description: Task split into smaller subtasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakdownResult"
+        "400":
+          description: Missing or invalid title
+        "429":
+          description: Too many requests
 components:
   schemas:
     ParseRequest:
@@ -65,8 +111,96 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ParseItem"
+        source:
+          $ref: "#/components/schemas/AISource"
+        model:
+          type: [string, "null"]
+        fallbackReason:
+          type: [string, "null"]
       required:
         - items
+    AISource:
+      type: string
+      enum: [claude, mock]
+    BreakdownRequest:
+      type: object
+      properties:
+        goal:
+          type: string
+        deadline:
+          type: [string, "null"]
+        now:
+          type: string
+          format: date-time
+      required:
+        - goal
+    ResplitRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        now:
+          type: string
+          format: date-time
+      required:
+        - title
+    BreakdownResult:
+      type: object
+      properties:
+        goalTitle:
+          type: string
+        deadline:
+          type: string
+        assumption:
+          type: [string, "null"]
+        subtasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/BreakdownSubtask"
+        source:
+          $ref: "#/components/schemas/AISource"
+        model:
+          type: [string, "null"]
+        fallbackReason:
+          type: [string, "null"]
+      required:
+        - goalTitle
+        - deadline
+        - assumption
+        - subtasks
+    BreakdownSubtask:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        doneWhen:
+          type: string
+        durationMin:
+          type: integer
+        difficulty:
+          type: integer
+          minimum: 1
+          maximum: 5
+        dayOffset:
+          type: integer
+          minimum: 0
+        dependsOn:
+          type: array
+          items:
+            type: string
+        starterStep:
+          type: string
+      required:
+        - id
+        - title
+        - doneWhen
+        - durationMin
+        - difficulty
+        - dayOffset
+        - dependsOn
+        - starterStep
     ParseItem:
       type: object
       properties:

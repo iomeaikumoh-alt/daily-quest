@@ -1,4 +1,5 @@
 import app from "./app";
+import { getAIConfig } from "./ai/config";
 import { logger } from "./lib/logger";
 
 const rawPort = process.env["PORT"];
@@ -22,4 +23,5 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  getAIConfig();
 });

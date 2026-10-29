@@ -1,23 +1,27 @@
 import { Router, type IRouter } from "express";
-import { mockAIProvider } from "../../../../lib/ai";
-import { now } from "../../../../lib/clock";
+import { parseText } from "../ai/service";
+import { BadRequestError, readNow, readText } from "./request-utils";
 
 const router: IRouter = Router();
 
 router.post("/parse", async (req, res) => {
-  const text = typeof req.body?.text === "string" ? req.body.text.trim() : "";
-  if (!text) {
-    res.status(400).json({ error: "text is required" });
-    return;
+  try {
+    const text = readText(req, "text", 500);
+    const current = readNow(req);
+    const result = await parseText(text, current);
+    req.log.info(
+      { source: result.source, items: result.items.length, fallbackReason: result.fallbackReason },
+      "Parsed natural language input",
+    );
+    res.json(result);
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    req.log.error({ err }, "Parse request failed");
+    res.status(500).json({ error: "입력을 분석하지 못했어요. 잠시 후 다시 시도해 주세요." });
   }
-
-  const requestedNow =
-    typeof req.body?.now === "string" ? new Date(req.body.now) : now();
-  const current = Number.isNaN(requestedNow.getTime()) ? now() : requestedNow;
-  const delay = 800 + Math.floor(Math.random() * 401);
-  await new Promise((resolve) => setTimeout(resolve, delay));
-  const result = await mockAIProvider.parse(text, current);
-  res.json(result);
 });
 
 export default router;

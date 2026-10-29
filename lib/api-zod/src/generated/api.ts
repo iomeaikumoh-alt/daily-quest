@@ -48,7 +48,79 @@ export const ParseNaturalLanguageResponse = zod.object({
   "until": zod.string().nullable()
 }),
   "uncertain": zod.array(zod.string())
-}))
+})),
+  "source": zod.enum(['claude', 'mock']).optional(),
+  "model": zod.string().nullish(),
+  "fallbackReason": zod.string().nullish()
+})
+
+
+/**
+ * @summary Break a big goal down into dated subtasks
+ */
+export const BreakdownGoalBody = zod.object({
+  "goal": zod.string(),
+  "deadline": zod.string().nullish(),
+  "now": zod.coerce.date().optional()
+})
+
+export const breakdownGoalResponseSubtasksItemDifficultyMax = 5;
+
+export const breakdownGoalResponseSubtasksItemDayOffsetMin = 0;
+
+
+
+export const BreakdownGoalResponse = zod.object({
+  "goalTitle": zod.string(),
+  "deadline": zod.string(),
+  "assumption": zod.string().nullable(),
+  "subtasks": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "doneWhen": zod.string(),
+  "durationMin": zod.number().int(),
+  "difficulty": zod.number().int().min(1).max(breakdownGoalResponseSubtasksItemDifficultyMax),
+  "dayOffset": zod.number().int().min(breakdownGoalResponseSubtasksItemDayOffsetMin),
+  "dependsOn": zod.array(zod.string()),
+  "starterStep": zod.string()
+})),
+  "source": zod.enum(['claude', 'mock']).optional(),
+  "model": zod.string().nullish(),
+  "fallbackReason": zod.string().nullish()
+})
+
+
+/**
+ * @summary Split one task into smaller subtasks
+ */
+export const ResplitTaskBody = zod.object({
+  "title": zod.string(),
+  "now": zod.coerce.date().optional()
+})
+
+export const resplitTaskResponseSubtasksItemDifficultyMax = 5;
+
+export const resplitTaskResponseSubtasksItemDayOffsetMin = 0;
+
+
+
+export const ResplitTaskResponse = zod.object({
+  "goalTitle": zod.string(),
+  "deadline": zod.string(),
+  "assumption": zod.string().nullable(),
+  "subtasks": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "doneWhen": zod.string(),
+  "durationMin": zod.number().int(),
+  "difficulty": zod.number().int().min(1).max(resplitTaskResponseSubtasksItemDifficultyMax),
+  "dayOffset": zod.number().int().min(resplitTaskResponseSubtasksItemDayOffsetMin),
+  "dependsOn": zod.array(zod.string()),
+  "starterStep": zod.string()
+})),
+  "source": zod.enum(['claude', 'mock']).optional(),
+  "model": zod.string().nullish(),
+  "fallbackReason": zod.string().nullish()
 })
 
 

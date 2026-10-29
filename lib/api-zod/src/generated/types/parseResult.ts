@@ -5,8 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AISource } from './aISource';
 import type { ParseItem } from './parseItem';
 
 export interface ParseResult {
   items: ParseItem[];
+  source?: AISource;
+  /** @nullable */
+  model?: string | null;
+  /** @nullable */
+  fallbackReason?: string | null;
 }
